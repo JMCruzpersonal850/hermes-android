@@ -297,19 +297,14 @@ class _BotChatScreenState extends State<BotChatScreen> {
       if (profile.provider.trim().isNotEmpty) profile.provider.trim(),
       if (profile.model.trim().isNotEmpty) profile.model.trim(),
     ].join(' • ');
+    final initial = profile.title.isEmpty ? 'H' : profile.title[0].toUpperCase();
 
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 4,
         title: Row(
           children: [
-            CircleAvatar(
-              child: Text(
-                profile.title.isEmpty
-                    ? 'H'
-                    : profile.title.characters.first.toUpperCase(),
-              ),
-            ),
+            CircleAvatar(child: Text(initial)),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -404,7 +399,7 @@ class _BotChatScreenState extends State<BotChatScreen> {
         }
         final user = role == 'user';
         final text = messageContentToText(message['content']).trim();
-        if (text.isEmpty && !(user == false && _sending && index == _messages.length - 1)) {
+        if (text.isEmpty && !(!user && _sending && index == _messages.length - 1)) {
           return const SizedBox.shrink();
         }
         final scheme = Theme.of(context).colorScheme;
@@ -456,7 +451,9 @@ class _BotChatScreenState extends State<BotChatScreen> {
                   vertical: 11,
                 ),
               ),
-              onSubmitted: (_) => _sending ? null : unawaited(_send()),
+              onSubmitted: (_) {
+                if (!_sending) unawaited(_send());
+              },
             ),
           ),
           const SizedBox(width: 8),
