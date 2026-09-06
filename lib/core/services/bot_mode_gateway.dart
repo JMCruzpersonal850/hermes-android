@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import '../models/hermes_profile.dart';
 import 'connection_manager.dart';
 import 'desktop_gateway_client.dart';
@@ -17,9 +15,7 @@ class BotModeGateway {
   final SavedConnection connection;
   WsClient? _ws;
   DashboardClient? _dashboard;
-  late final ProfilesGatewayClient profiles = ProfilesGatewayClient(
-    _rpc,
-  );
+  late final ProfilesGatewayClient profiles = ProfilesGatewayClient(_rpc);
 
   BotModeGateway(this.connection);
 
@@ -126,8 +122,12 @@ class BotModeGateway {
         'omit_messages': false,
         'lazy': false,
       });
+      final runtimeId = (result['session_id'] ?? '').toString();
+      if (runtimeId.isEmpty) {
+        throw StateError('Hermes did not return a runtime session for this bot.');
+      }
       return BotChatOpenResult(
-        runtimeSessionId: (result['session_id'] ?? '').toString(),
+        runtimeSessionId: runtimeId,
         storedSessionId: storedId.isEmpty ? openId : storedId,
         messages: _messages(result['messages']),
         created: false,
@@ -171,20 +171,14 @@ class BotModeGateway {
     required String runtimeSessionId,
     required String choice,
   }) async {
-    final result = await _result('approval.respond', {
+    await _result('approval.respond', {
       'session_id': runtimeSessionId,
       'choice': choice,
     });
-    // Touch the result so malformed success envelopes cannot be mistaken for
-    // transport failures by callers; current Hermes returns an object.
-    result.length;
   }
 
   Future<void> interrupt(String runtimeSessionId) async {
-    final result = await _result('session.interrupt', {
-      'session_id': runtimeSessionId,
-    });
-    result.length;
+    await _result('session.interrupt', {'session_id': runtimeSessionId});
   }
 
   static List<Map<String, dynamic>> _messages(Object? raw) {
