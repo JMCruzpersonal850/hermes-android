@@ -151,6 +151,26 @@ List<MoreSection> buildMoreSections({required bool dashboardReachable}) {
       ],
     ),
     MoreSection(
+      title: 'System',
+      entries: [
+        const MoreEntry(
+          id: 'settings',
+          title: 'Settings',
+          subtitle: 'Connection, appearance, and device preferences',
+          icon: Icons.settings_outlined,
+        ),
+        MoreEntry(
+          id: 'dashboard',
+          title: 'Open the Hermes dashboard',
+          subtitle:
+              'Everything not yet native, in the authenticated web dashboard',
+          icon: Icons.open_in_new,
+          availability: dashboardBacked(),
+          unavailableReason: dashboardReason(),
+        ),
+      ],
+    ),
+    MoreSection(
       title: 'Agents & automation',
       entries: [
         MoreEntry(
@@ -174,26 +194,6 @@ List<MoreSection> buildMoreSections({required bool dashboardReachable}) {
           title: 'Memory',
           subtitle: 'Durable facts Hermes keeps about you',
           icon: Icons.psychology_outlined,
-          availability: dashboardBacked(),
-          unavailableReason: dashboardReason(),
-        ),
-      ],
-    ),
-    MoreSection(
-      title: 'System',
-      entries: [
-        const MoreEntry(
-          id: 'settings',
-          title: 'Settings',
-          subtitle: 'Connection, appearance, and device preferences',
-          icon: Icons.settings_outlined,
-        ),
-        MoreEntry(
-          id: 'dashboard',
-          title: 'Open the Hermes dashboard',
-          subtitle:
-              'Everything not yet native, in the authenticated web dashboard',
-          icon: Icons.open_in_new,
           availability: dashboardBacked(),
           unavailableReason: dashboardReason(),
         ),
