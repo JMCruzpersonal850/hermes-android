@@ -1,6 +1,11 @@
-// Skills browser — list installed skills with enabled/disabled status.
+// Bots + Skills browser. Bot Mode is gateway-backed so Android and Desktop
+// always see the same Hermes profiles.
 import 'package:flutter/material.dart';
+
+import '../services/bot_mode_gateway.dart';
 import '../services/connection_manager.dart';
+import '../widgets/bots_pane.dart';
+import 'bot_chat_screen.dart';
 
 class SkillsScreen extends StatefulWidget {
   final SavedConnection connection;
@@ -12,6 +17,7 @@ class SkillsScreen extends StatefulWidget {
 
 class _SkillsScreenState extends State<SkillsScreen> {
   late DashboardClient _client;
+  late final BotModeGateway _botGateway;
   List<Map<String, dynamic>> _skills = [];
   bool _loading = true;
   String? _error;
@@ -28,11 +34,13 @@ class _SkillsScreenState extends State<SkillsScreen> {
       username: widget.connection.dashboardUsername,
       password: widget.connection.dashboardPassword,
     );
+    _botGateway = BotModeGateway(widget.connection);
     _load();
   }
 
   @override
   void dispose() {
+    _botGateway.close();
     _client.close();
     super.dispose();
   }
@@ -60,21 +68,41 @@ class _SkillsScreenState extends State<SkillsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Skills (${_skills.length})'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loading ? null : _load,
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Bots & Skills'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.smart_toy_outlined), text: 'Bots'),
+              Tab(icon: Icon(Icons.auto_awesome_outlined), text: 'Skills'),
+            ],
           ),
-        ],
+        ),
+        body: TabBarView(
+          children: [
+            BotsPane(
+              profiles: _botGateway.profiles,
+              onOpenBot: (profile) async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => BotChatScreen(
+                      connection: widget.connection,
+                      profile: profile,
+                    ),
+                  ),
+                );
+              },
+            ),
+            _buildSkillsBody(),
+          ],
+        ),
       ),
-      body: _buildBody(),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildSkillsBody() {
     if (_loading) return const Center(child: CircularProgressIndicator());
     if (_error != null) {
       return Center(

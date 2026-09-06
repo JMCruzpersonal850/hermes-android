@@ -151,35 +151,6 @@ List<MoreSection> buildMoreSections({required bool dashboardReachable}) {
       ],
     ),
     MoreSection(
-      title: 'Automation',
-      entries: [
-        MoreEntry(
-          id: 'cron',
-          title: 'Cron',
-          subtitle: 'Scheduled jobs and their last runs',
-          icon: Icons.schedule_outlined,
-          availability: dashboardBacked(),
-          unavailableReason: dashboardReason(),
-        ),
-        MoreEntry(
-          id: 'skills',
-          title: 'Skills and tools',
-          subtitle: 'What Hermes knows how to do',
-          icon: Icons.auto_awesome_outlined,
-          availability: dashboardBacked(),
-          unavailableReason: dashboardReason(),
-        ),
-        MoreEntry(
-          id: 'memory',
-          title: 'Memory',
-          subtitle: 'Durable facts Hermes keeps about you',
-          icon: Icons.psychology_outlined,
-          availability: dashboardBacked(),
-          unavailableReason: dashboardReason(),
-        ),
-      ],
-    ),
-    MoreSection(
       title: 'System',
       entries: [
         const MoreEntry(
@@ -199,6 +170,35 @@ List<MoreSection> buildMoreSections({required bool dashboardReachable}) {
         ),
       ],
     ),
+    MoreSection(
+      title: 'Agents & automation',
+      entries: [
+        MoreEntry(
+          id: 'skills',
+          title: 'Bots & skills',
+          subtitle: 'Open Bot Mode, create agents, and manage Hermes skills',
+          icon: Icons.smart_toy_outlined,
+          availability: dashboardBacked(),
+          unavailableReason: dashboardReason(),
+        ),
+        MoreEntry(
+          id: 'cron',
+          title: 'Cron',
+          subtitle: 'Scheduled jobs and their last runs',
+          icon: Icons.schedule_outlined,
+          availability: dashboardBacked(),
+          unavailableReason: dashboardReason(),
+        ),
+        MoreEntry(
+          id: 'memory',
+          title: 'Memory',
+          subtitle: 'Durable facts Hermes keeps about you',
+          icon: Icons.psychology_outlined,
+          availability: dashboardBacked(),
+          unavailableReason: dashboardReason(),
+        ),
+      ],
+    ),
   ];
 }
 
@@ -211,23 +211,28 @@ class MorePane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
+    // The More menu is intentionally short. Build every destination eagerly so
+    // deep entries remain discoverable to semantics, tests, and programmatic
+    // navigation while the whole pane still scrolls normally on small phones.
+    return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: HermesSpacing.xl),
-      children: [
-        for (final section in sections) ...[
-          SectionHeader(title: section.title),
-          for (final entry in section.entries)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                HermesSpacing.lg,
-                0,
-                HermesSpacing.lg,
-                HermesSpacing.md,
+      child: Column(
+        children: [
+          for (final section in sections) ...[
+            SectionHeader(title: section.title),
+            for (final entry in section.entries)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  HermesSpacing.lg,
+                  0,
+                  HermesSpacing.lg,
+                  HermesSpacing.md,
+                ),
+                child: _MoreEntryCard(entry: entry, onSelect: onSelect),
               ),
-              child: _MoreEntryCard(entry: entry, onSelect: onSelect),
-            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -273,8 +278,6 @@ class _MoreEntryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // A Wrap rather than a Row: at a large text scale the badge
-                  // moves to its own line instead of overflowing the card.
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: HermesSpacing.sm,
