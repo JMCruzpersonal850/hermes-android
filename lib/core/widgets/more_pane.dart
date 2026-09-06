@@ -216,7 +216,7 @@ class MorePane extends StatelessWidget {
       // makes every destination and disabled-state explanation immediately
       // discoverable to semantics, tests, and programmatic navigation even
       // when Bot Mode adds rows below the initial viewport.
-      scrollCacheExtent: 5000,
+      scrollCacheExtent: const ScrollCacheExtent.pixels(5000),
       padding: const EdgeInsets.only(bottom: HermesSpacing.xl),
       children: [
         for (final section in sections) ...[
