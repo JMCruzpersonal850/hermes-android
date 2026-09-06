@@ -151,21 +151,21 @@ List<MoreSection> buildMoreSections({required bool dashboardReachable}) {
       ],
     ),
     MoreSection(
-      title: 'Automation',
+      title: 'Agents & automation',
       entries: [
+        MoreEntry(
+          id: 'skills',
+          title: 'Bots & skills',
+          subtitle: 'Open Bot Mode, create agents, and manage Hermes skills',
+          icon: Icons.smart_toy_outlined,
+          availability: dashboardBacked(),
+          unavailableReason: dashboardReason(),
+        ),
         MoreEntry(
           id: 'cron',
           title: 'Cron',
           subtitle: 'Scheduled jobs and their last runs',
           icon: Icons.schedule_outlined,
-          availability: dashboardBacked(),
-          unavailableReason: dashboardReason(),
-        ),
-        MoreEntry(
-          id: 'skills',
-          title: 'Skills and tools',
-          subtitle: 'What Hermes knows how to do',
-          icon: Icons.auto_awesome_outlined,
           availability: dashboardBacked(),
           unavailableReason: dashboardReason(),
         ),
@@ -273,8 +273,6 @@ class _MoreEntryCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // A Wrap rather than a Row: at a large text scale the badge
-                  // moves to its own line instead of overflowing the card.
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     spacing: HermesSpacing.sm,
