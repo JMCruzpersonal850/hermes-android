@@ -17,7 +17,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 
 import '../theme/hermes_theme.dart';
 import 'hermes_components.dart';
@@ -212,28 +211,28 @@ class MorePane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      // More is a short capability menu. Keeping the full menu in the cache
-      // makes every destination and disabled-state explanation immediately
-      // discoverable to semantics, tests, and programmatic navigation even
-      // when Bot Mode adds rows below the initial viewport.
-      scrollCacheExtent: const ScrollCacheExtent.pixels(5000),
+    // The More menu is intentionally short. Build every destination eagerly so
+    // deep entries remain discoverable to semantics, tests, and programmatic
+    // navigation while the whole pane still scrolls normally on small phones.
+    return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: HermesSpacing.xl),
-      children: [
-        for (final section in sections) ...[
-          SectionHeader(title: section.title),
-          for (final entry in section.entries)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                HermesSpacing.lg,
-                0,
-                HermesSpacing.lg,
-                HermesSpacing.md,
+      child: Column(
+        children: [
+          for (final section in sections) ...[
+            SectionHeader(title: section.title),
+            for (final entry in section.entries)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  HermesSpacing.lg,
+                  0,
+                  HermesSpacing.lg,
+                  HermesSpacing.md,
+                ),
+                child: _MoreEntryCard(entry: entry, onSelect: onSelect),
               ),
-              child: _MoreEntryCard(entry: entry, onSelect: onSelect),
-            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
