@@ -114,7 +114,7 @@ class _SessionListScreenState extends State<SessionListScreen> {
       apiKey: widget.connection.apiKey,
       pathPrefix: widget.connection.gatewayPrefix ?? '',
     );
-    if (widget.connection.desktopGatewayUrl?.trim().isNotEmpty == true) {
+    if (widget.connection.hasDesktopGateway) {
       try {
         _desktopGateway = DesktopGatewayClient.fromConnection(
           widget.connection,
@@ -911,7 +911,7 @@ class _SessionListScreenState extends State<SessionListScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.auto_awesome),
-              title: const Text('Skills'),
+              title: const Text('Bots & Skills'),
               onTap: () =>
                   _openScreen(SkillsScreen(connection: widget.connection)),
             ),

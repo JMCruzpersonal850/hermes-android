@@ -31,7 +31,8 @@ class BotModeGateway {
       port: uri.port,
       useHttps: uri.scheme == 'https',
       pathPrefix: pathPrefix,
-      username: connection.dashboardUsername,
+      proxied: connection.dashboardProxied,
+        username: connection.dashboardUsername,
       password: connection.dashboardPassword,
     );
     _dashboard?.close();

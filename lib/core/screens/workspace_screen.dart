@@ -627,8 +627,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
     // Projects live on the Desktop Gateway JSON-RPC transport; a legacy REST
     // connection simply has nowhere to ask.
-    final gatewayUrl = widget.connection.desktopGatewayUrl?.trim() ?? '';
-    if (gatewayUrl.isEmpty) {
+    if (!widget.connection.hasDesktopGateway) {
       if (mounted) setState(() => _initialized = true);
       return;
     }
@@ -681,9 +680,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           return const ErrorState.unsupported(
             title: 'Projects unavailable',
             message:
-                'Projects need a Desktop Gateway connection. Add the Desktop '
-                'Gateway URL to this connection to organize chats across '
-                'your devices.',
+                'Connect the desktop service in Dashboard / Proxy Settings '
+                'on your saved connection to organize chats across devices.',
           );
         }
         return ProjectsPane(
@@ -1220,6 +1218,11 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         title: Text(widget.connection.label),
         centerTitle: false,
         actions: [
+          IconButton(
+            tooltip: 'Bots & Skills',
+            icon: const Icon(Icons.smart_toy_outlined),
+            onPressed: () => _push(SkillsScreen(connection: widget.connection)),
+          ),
           if (_destination == HermesDestination.home) ...[
             IconButton(
               tooltip: _inboxActionCount == 0

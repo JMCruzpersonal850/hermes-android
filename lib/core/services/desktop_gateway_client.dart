@@ -141,6 +141,7 @@ class DesktopGatewayClient {
         port: baseUri.port,
         useHttps: baseUri.scheme == 'https',
         pathPrefix: pathPrefix,
+        proxied: connection.dashboardProxied,
         username: connection.dashboardUsername,
         password: connection.dashboardPassword,
       ),

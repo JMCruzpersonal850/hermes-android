@@ -98,7 +98,8 @@ class _BotsPaneState extends State<BotsPane> {
             title: unsupported ? 'Update Hermes to use Bot Mode' : 'Could not load your bots',
             message: unsupported
                 ? 'The PC gateway does not expose profiles.list yet. Update Hermes on the PC, then refresh.'
-                : '$error',
+                : 'Check Dashboard / Proxy Settings on your saved connection and '
+                    'make sure the desktop service is running. $error',
             buttonLabel: 'Try again',
             onPressed: _refresh,
           );
