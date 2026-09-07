@@ -2877,6 +2877,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 onStop: () => unawaited(_voiceComposer.stop()),
                 onCancel: () => unawaited(_voiceComposer.cancel()),
               ),
+            Semantics(
+              label: 'Message',
+              textField: true,
+              child: TextField(
+                key: const Key('chat-message-composer'),
+                controller: _textController,
+                decoration: InputDecoration(
+                  hintText: 'Message Hermes…',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  isDense: true,
+                ),
+                minLines: 1,
+                maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.send,
+                enabled: !_loading && !_streaming,
+                onSubmitted: (_) => _sendMessage(),
+              ),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Semantics(
@@ -2896,35 +2923,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Semantics(
-                    label: 'Message',
-                    textField: true,
-                    child: TextField(
-                      key: const Key('chat-message-composer'),
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        hintText: 'Message Hermes…',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        isDense: true,
-                      ),
-                      minLines: 1,
-                      maxLines: 5,
-                      textCapitalization: TextCapitalization.sentences,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.send,
-                      enabled: !_loading && !_streaming,
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
+                const Spacer(),
                 if (!_voiceComposer.listening)
                   VoiceComposerStartButton(
                     enabled: !_loading && !_streaming && !_sending,
