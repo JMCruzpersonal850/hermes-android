@@ -526,8 +526,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ErrorState), findsOneWidget);
-    expect(find.textContaining('Desktop Gateway'), findsOneWidget);
+    expect(find.textContaining('Dashboard / Proxy Settings'), findsOneWidget);
     expect(find.byType(ProjectsPane), findsNothing);
+  });
+
+  testWidgets('Bots are visible from Home without opening More', (tester) async {
+    await _pump(tester, connection: _connection());
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Bots & Skills'), findsOneWidget);
   });
 
   testWidgets('Activity no longer ships a placeholder', (tester) async {
