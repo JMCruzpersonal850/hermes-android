@@ -57,7 +57,8 @@ class _BotsPaneState extends State<BotsPane> {
 
 
   void _refresh() {
-    setState(() => _snapshot = widget.profiles.list());
+    final next = widget.profiles.list();
+    setState(() { _snapshot = next; });
   }
 
   Future<void> _createBot() async {
