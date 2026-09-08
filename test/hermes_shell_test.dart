@@ -44,8 +44,9 @@ Future<void> _pumpShell(
 
 void main() {
   group('HermesDestination', () {
-    test('declares the five validated top-level destinations in order', () {
+    test('declares Bots before the existing workspace destinations', () {
       expect(HermesDestination.values, [
+        HermesDestination.bots,
         HermesDestination.home,
         HermesDestination.chats,
         HermesDestination.projects,

@@ -183,6 +183,7 @@ Future<void> _pump(
     MaterialApp(
       theme: hermesTheme(Brightness.dark),
       home: WorkspaceScreen(
+        initialDestination: HermesDestination.home,
         connection: connection,
         repositoryFactory: repository == null ? null : (_) => repository,
         onOpenProject: openedProjects?.add,
@@ -762,6 +763,7 @@ void main() {
       MaterialApp(
         theme: hermesTheme(Brightness.dark),
         home: WorkspaceScreen(
+        initialDestination: HermesDestination.home,
           connection: _connection(desktopGatewayUrl: 'https://host:8642'),
           repositoryFactory: (_) => repository,
           sessionsLoader: () async {
@@ -835,6 +837,7 @@ void main() {
       MaterialApp(
         theme: hermesTheme(Brightness.dark),
         home: WorkspaceScreen(
+        initialDestination: HermesDestination.home,
           connection: _connection(desktopGatewayUrl: 'https://host:8642'),
           repositoryFactory: (_) => repository,
           turnApplicationController: controller,

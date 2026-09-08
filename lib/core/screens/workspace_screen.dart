@@ -118,6 +118,7 @@ Widget buildWorkspaceChatScreen({
 
 class WorkspaceScreen extends StatefulWidget {
   final SavedConnection connection;
+  final HermesDestination initialDestination;
 
   /// Overrides repository construction. When provided, the caller keeps
   /// ownership of the repository lifecycle and this screen will not close it.
@@ -176,6 +177,7 @@ class WorkspaceScreen extends StatefulWidget {
 
   const WorkspaceScreen({
     required this.connection,
+    this.initialDestination = HermesDestination.bots,
     this.repositoryFactory,
     this.onOpenProject,
     this.onOpenSession,
@@ -225,7 +227,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   /// The destination currently on screen. The New button is a Home
   /// affordance: over Projects or More it would be ambiguous what it creates.
-  HermesDestination _destination = HermesDestination.bots;
+  late HermesDestination _destination = widget.initialDestination;
 
   /// The last known attention/running signals. Home ranks with these; an
   /// empty value simply means everything falls back to `Continue working`.
@@ -1248,7 +1250,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         ],
       ),
       body: HermesShell(
-        initialDestination: HermesDestination.bots,
+        initialDestination: widget.initialDestination,
         // The badge is the only attention signal visible from another
         // destination, so blocked work has to raise it even while the user is
         // in Projects or More.

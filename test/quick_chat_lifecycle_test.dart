@@ -1,3 +1,4 @@
+import 'package:hermes_android/core/widgets/hermes_shell.dart';
 /// The Quick chat lifecycle, end to end.
 ///
 /// `buildNewChatDraft` computed a 72 h deadline and `QuickChatStore` can now
@@ -110,6 +111,7 @@ Future<void> _pumpWorkspace(
     MaterialApp(
       theme: hermesTheme(Brightness.dark),
       home: WorkspaceScreen(
+        initialDestination: HermesDestination.home,
         connection: connection,
         repositoryFactory: repository == null ? null : (_) => repository,
         sessionsLoader: () async => const <Session>[],
