@@ -181,6 +181,7 @@ class BotModeGateway {
       _result(method, params);
 
   Future<BotChatOpenResult> startFreshChat(HermesProfile profile, String previousRuntime) async {
+    await _result('session.set_hidden', {'session_id': previousRuntime, 'hidden': false});
     await _result('session.title', {
       'session_id': previousRuntime,
       'title': 'Bot Chat • ${DateTime.now().toIso8601String()}',
@@ -204,6 +205,7 @@ class BotModeGateway {
       );
     } catch (_) {
       await _result('session.title', {'session_id': previousRuntime, 'title': canonicalChatTitle});
+      await _result('session.set_hidden', {'session_id': previousRuntime, 'hidden': true});
       rethrow;
     }
   }
