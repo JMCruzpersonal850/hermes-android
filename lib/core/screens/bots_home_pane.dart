@@ -67,7 +67,7 @@ class _BotsHomePaneState extends State<BotsHomePane> {
       final result = await _gateway.groupRequest('groups.create', {
         'room_id': 'mobile-${DateTime.now().microsecondsSinceEpoch}',
         'name': title.isEmpty ? selected.join(', ') : title,
-        'members': selected.map((p) => {'profile': p, 'handle': p}).toList(),
+        'members': selected.map((p) => {'member_id': p, 'profile': p, 'handle': p}).toList(),
       });
       await _load();
       if (!mounted) return;
@@ -143,7 +143,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     if (_pendingText != text) { _pendingText = text; _pendingId = 'mobile-${DateTime.now().microsecondsSinceEpoch}'; }
     setState(() => _sending = true);
     try {
-      await _gateway.groupRequest('groups.send', {'room_id': _id, 'event_id': _pendingId, 'payload': {'text': text}});
+      await _gateway.groupRequest('groups.send', {'room_id': _id, 'event_id': _pendingId, 'payload': {'text': text, 'thread_id': _id}});
       if (!mounted) return;
       _text.clear(); _pendingText = null; _pendingId = null;
       await _read();
@@ -160,8 +160,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       const Padding(padding: EdgeInsets.all(12), child: Text('Mention a bot with @handle to direct your message.')),
       if (_error != null) Text(_error!),
       Expanded(child: ListView(children: [for (final event in _events)
-        if (event['type'] == 'message.user' || event['type'] == 'message.member')
-          ListTile(title: Text(event['actor_id']?.toString() ?? (event['type'] == 'message.user' ? 'You' : 'Bot')),
+        if (event['kind'] == 'message.user' || event['kind'] == 'message.member')
+          ListTile(title: Text((event['actor'] is Map ? event['actor']['id']?.toString() : null) ?? (event['kind'] == 'message.user' ? 'You' : 'Bot')),
             subtitle: Text((event['payload'] is Map ? (event['payload']['text'] ?? event['payload']['content'] ?? '') : '').toString())),
       ])),
       Padding(padding: const EdgeInsets.all(12), child: Row(children: [Expanded(child: TextField(controller: _text, minLines: 1, maxLines: 5, decoration: const InputDecoration(hintText: 'Message group', border: OutlineInputBorder()))), IconButton(onPressed: _sending ? null : _send, icon: const Icon(Icons.send))])),
