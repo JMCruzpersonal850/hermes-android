@@ -183,6 +183,7 @@ Future<void> _pump(
     MaterialApp(
       theme: hermesTheme(Brightness.dark),
       home: WorkspaceScreen(
+        initialDestination: HermesDestination.home,
         connection: connection,
         repositoryFactory: repository == null ? null : (_) => repository,
         onOpenProject: openedProjects?.add,
@@ -526,8 +527,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(ErrorState), findsOneWidget);
-    expect(find.textContaining('Desktop Gateway'), findsOneWidget);
+    expect(find.textContaining('Dashboard / Proxy Settings'), findsOneWidget);
     expect(find.byType(ProjectsPane), findsNothing);
+  });
+
+  testWidgets('Bots are visible from Home without opening More', (tester) async {
+    await _pump(tester, connection: _connection());
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Bots & Skills'), findsOneWidget);
   });
 
   testWidgets('Activity no longer ships a placeholder', (tester) async {
@@ -756,6 +763,7 @@ void main() {
       MaterialApp(
         theme: hermesTheme(Brightness.dark),
         home: WorkspaceScreen(
+        initialDestination: HermesDestination.home,
           connection: _connection(desktopGatewayUrl: 'https://host:8642'),
           repositoryFactory: (_) => repository,
           sessionsLoader: () async {
@@ -829,6 +837,7 @@ void main() {
       MaterialApp(
         theme: hermesTheme(Brightness.dark),
         home: WorkspaceScreen(
+        initialDestination: HermesDestination.home,
           connection: _connection(desktopGatewayUrl: 'https://host:8642'),
           repositoryFactory: (_) => repository,
           turnApplicationController: controller,

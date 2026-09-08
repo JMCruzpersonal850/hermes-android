@@ -99,8 +99,9 @@ List<NewChatOption> buildNewChatOptions({
       projectChatBlocker = 'Still loading your projects.';
     case ProjectsSupport.unsupported:
       projectChatBlocker =
-          'This gateway does not host projects yet. Update the gateway to '
-          'organize chats across your devices.';
+          'Projects need the Desktop connection. Configure Dashboard / Proxy '
+          'Settings on your saved connection. If already connected, check '
+          'that the desktop service supports projects.';
     case ProjectsSupport.native:
       projectChatBlocker = usable.isEmpty
           ? 'Create a project first, then chats can live inside it.'

@@ -67,6 +67,13 @@ class SavedConnection {
   /// [dashboardPortOverride] always wins.
   int get dashboardPort => dashboardPortOverride ?? (useHttps ? port : 9119);
 
+  /// Desktop features share the authenticated dashboard WebSocket service.
+  bool get hasDesktopGateway =>
+      desktopGatewayUrl?.trim().isNotEmpty == true ||
+      dashboardProxied ||
+      (dashboardUsername?.trim().isNotEmpty == true &&
+          dashboardPassword?.trim().isNotEmpty == true);
+
   /// Joins a base URL with an optional path prefix, normalising slashes.
   static String joinBaseUrl(String baseUrl, String pathPrefix) {
     var url = baseUrl.endsWith('/')

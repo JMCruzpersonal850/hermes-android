@@ -13,6 +13,8 @@
 ///    records it, and starting a Project chat records nothing.
 library;
 
+import 'package:hermes_android/core/widgets/hermes_shell.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hermes_android/core/models/connection.dart';
@@ -110,6 +112,7 @@ Future<void> _pumpWorkspace(
     MaterialApp(
       theme: hermesTheme(Brightness.dark),
       home: WorkspaceScreen(
+        initialDestination: HermesDestination.home,
         connection: connection,
         repositoryFactory: repository == null ? null : (_) => repository,
         sessionsLoader: () async => const <Session>[],

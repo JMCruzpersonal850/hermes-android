@@ -40,6 +40,16 @@ jobs:
       - name: Run tests
         run: flutter test --no-pub
 
+      - name: Restore persistent development signing key
+        env:
+          HERMES_DEBUG_KEYSTORE: ${{ secrets.HERMES_DEBUG_KEYSTORE }}
+        run: |
+          test -n "$HERMES_DEBUG_KEYSTORE"
+          mkdir -p ~/.android
+          printf '%s' "$HERMES_DEBUG_KEYSTORE" | base64 --decode > ~/.android/debug.keystore
+          chmod 600 ~/.android/debug.keystore
+          echo "HERMES_DEBUG_KEYSTORE_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+
       - name: Build arm64 Android APK
         run: flutter build apk --debug --split-per-abi
 

@@ -87,6 +87,25 @@ class _BotChatScreenState extends State<BotChatScreen> {
   Future<void> _send() async {
     final text = _composer.text.trim();
     if (text.isEmpty) return;
+    if (text == '/new') {
+      if (_sending || _runtimeSessionId == null) return;
+      setState(() { _loading = true; _error = null; });
+      try {
+        final opened = await _gateway.startFreshChat(widget.profile, _runtimeSessionId!);
+        if (!mounted) return;
+        setState(() {
+          _runtimeSessionId = opened.runtimeSessionId;
+          _messages.clear();
+          _composer.clear();
+          _status = null;
+        });
+      } catch (error) {
+        if (mounted) setState(() => _error = 'Could not start a new chat: $error');
+      } finally {
+        if (mounted) setState(() => _loading = false);
+      }
+      return;
+    }
     _composer.clear();
     await _sendText(text);
   }

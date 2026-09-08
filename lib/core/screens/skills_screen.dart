@@ -114,12 +114,13 @@ class _SkillsScreenState extends State<SkillsScreen> {
               const Icon(Icons.error_outline, size: 48, color: Colors.orange),
               const SizedBox(height: 16),
               Text(
-                'Failed to load skills',
+                'Could not connect to desktop skills',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
               Text(
-                _error!,
+                'Check Dashboard / Proxy Settings on your saved connection. '
+                '${_error!}',
                 style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center,
               ),

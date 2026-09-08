@@ -1324,12 +1324,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       if (!mounted) return;
 
-      var selectedChoice = choices.firstWhere(
-        (choice) =>
-            choice.model == (_sessionModel ?? widget.session.model) &&
-            (_sessionProvider == null || choice.provider == _sessionProvider),
-        orElse: () => choices.first,
-      );
+      final currentModel = _sessionModel ??
+          (widget.session.model == 'hermes-agent'
+              ? modelInfo['model']?.toString()
+              : widget.session.model);
+      final currentProvider =
+          _sessionProvider ?? modelInfo['provider']?.toString();
+      _ModelChoice? selectedChoice;
+      for (final choice in choices) {
+        if (choice.model == currentModel &&
+            (currentProvider == null || choice.provider == currentProvider)) {
+          selectedChoice = choice;
+          break;
+        }
+      }
+      final groups = <String, List<_ModelChoice>>{};
+      for (final choice in choices) {
+        groups.putIfAbsent(choice.provider, () => []).add(choice);
+      }
+      final providers = groups.keys.toList()..sort();
+      const providerLabels = {
+        'nous': 'Nous',
+        'openai': 'OpenAI',
+        'anthropic': 'Anthropic',
+        'openrouter': 'OpenRouter',
+        'google': 'Google',
+        'ollama': 'Ollama',
+      };
       var selectedEffort = currentEffort;
       final selection = await showModalBottomSheet<_ModelSelection>(
         context: context,
@@ -1378,28 +1399,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   ),
                   const Divider(height: 1),
                   Expanded(
-                    child: ListView.builder(
-                      itemCount: choices.length,
-                      itemBuilder: (context, index) {
-                        final choice = choices[index];
-                        final selected =
-                            choice.model == selectedChoice.model &&
-                            choice.provider == selectedChoice.provider;
-                        return ListTile(
-                          leading: Icon(
-                            selected
-                                ? Icons.check_circle
-                                : Icons.smart_toy_outlined,
-                            color: selected
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
+                    child: ListView(
+                      children: [
+                        for (final provider in providers)
+                          ExpansionTile(
+                            key: PageStorageKey('model-provider-$provider'),
+                            initiallyExpanded:
+                                provider == selectedChoice?.provider ||
+                                providers.length == 1,
+                            title: Text(providerLabels[provider] ?? provider),
+                            subtitle: Text('${groups[provider]!.length} models'),
+                            children: [
+                              for (final choice in groups[provider]!)
+                                ListTile(
+                                  leading: Icon(
+                                    choice == selectedChoice
+                                        ? Icons.check_circle
+                                        : Icons.smart_toy_outlined,
+                                  ),
+                                  title: Text(choice.model),
+                                  selected: choice == selectedChoice,
+                                  onTap: () => setSheetState(
+                                    () => selectedChoice = choice,
+                                  ),
+                                ),
+                            ],
                           ),
-                          title: Text(choice.model),
-                          subtitle: Text(choice.provider),
-                          onTap: () =>
-                              setSheetState(() => selectedChoice = choice),
-                        );
-                      },
+                      ],
                     ),
                   ),
                   const Divider(height: 1),
@@ -1414,10 +1440,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         ),
                         const SizedBox(width: 8),
                         FilledButton(
-                          onPressed: () => Navigator.pop(
+                          onPressed: selectedChoice == null ? null : () => Navigator.pop(
                             sheetContext,
                             _ModelSelection(
-                              choice: selectedChoice,
+                              choice: selectedChoice!,
                               reasoningEffort: selectedEffort,
                             ),
                           ),
@@ -2877,6 +2903,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 onStop: () => unawaited(_voiceComposer.stop()),
                 onCancel: () => unawaited(_voiceComposer.cancel()),
               ),
+            Semantics(
+              label: 'Message',
+              textField: true,
+              child: TextField(
+                key: const Key('chat-message-composer'),
+                controller: _textController,
+                decoration: InputDecoration(
+                  hintText: 'Message Hermes…',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  isDense: true,
+                ),
+                minLines: 1,
+                maxLines: 5,
+                textCapitalization: TextCapitalization.sentences,
+                keyboardType: TextInputType.multiline,
+                textInputAction: TextInputAction.send,
+                enabled: !_loading && !_streaming,
+                onSubmitted: (_) => _sendMessage(),
+              ),
+            ),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Semantics(
@@ -2896,35 +2949,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     ),
                   ),
                 ),
-                Expanded(
-                  child: Semantics(
-                    label: 'Message',
-                    textField: true,
-                    child: TextField(
-                      key: const Key('chat-message-composer'),
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        hintText: 'Message Hermes…',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        isDense: true,
-                      ),
-                      minLines: 1,
-                      maxLines: 5,
-                      textCapitalization: TextCapitalization.sentences,
-                      keyboardType: TextInputType.multiline,
-                      textInputAction: TextInputAction.send,
-                      enabled: !_loading && !_streaming,
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
+                const Spacer(),
                 if (!_voiceComposer.listening)
                   VoiceComposerStartButton(
                     enabled: !_loading && !_streaming && !_sending,

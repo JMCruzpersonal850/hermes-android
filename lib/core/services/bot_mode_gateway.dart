@@ -15,11 +15,28 @@ class BotModeGateway {
   final SavedConnection connection;
   WsClient? _ws;
   DashboardClient? _dashboard;
+  Future<WsClient>? _connecting;
+  bool _closed = false;
   late final ProfilesGatewayClient profiles = ProfilesGatewayClient(_rpc);
 
   BotModeGateway(this.connection);
 
   Future<WsClient> _connect() async {
+    if (_closed) throw StateError('Bot connection has been closed');
+    final existing = _ws;
+    if (existing != null && existing.isConnected) return existing;
+    final pending = _connecting;
+    if (pending != null) return pending;
+    final opening = _openConnection();
+    _connecting = opening;
+    try {
+      return await opening;
+    } finally {
+      if (identical(_connecting, opening)) _connecting = null;
+    }
+  }
+
+  Future<WsClient> _openConnection() async {
     final existing = _ws;
     if (existing != null && existing.isConnected) return existing;
 
@@ -31,7 +48,8 @@ class BotModeGateway {
       port: uri.port,
       useHttps: uri.scheme == 'https',
       pathPrefix: pathPrefix,
-      username: connection.dashboardUsername,
+      proxied: connection.dashboardProxied,
+        username: connection.dashboardUsername,
       password: connection.dashboardPassword,
     );
     _dashboard?.close();
@@ -41,6 +59,11 @@ class BotModeGateway {
     final client = WsClient(baseUrl, ticket: ticket);
     await client.connect();
     await client.waitForGatewayReady();
+    if (_closed) {
+      client.close();
+      dashboard.close();
+      throw StateError('Bot connection closed during setup');
+    }
     _ws?.close();
     _ws = client;
     return client;
@@ -154,6 +177,39 @@ class BotModeGateway {
     );
   }
 
+  Future<Map<String, dynamic>> groupRequest(String method, Map<String, dynamic> params) =>
+      _result(method, params);
+
+  Future<BotChatOpenResult> startFreshChat(HermesProfile profile, String previousRuntime) async {
+    await _result('session.set_hidden', {'session_id': previousRuntime, 'hidden': false});
+    await _result('session.title', {
+      'session_id': previousRuntime,
+      'title': 'Bot Chat • ${DateTime.now().toIso8601String()}',
+    });
+    try {
+      final created = await _result('session.create', {
+        'profile': profile.name,
+        'title': canonicalChatTitle,
+        'hidden': true,
+        'follow_profile_config': true,
+        'source': 'hermes_mobile_bot',
+      });
+      final runtime = (created['session_id'] ?? '').toString();
+      if (runtime.isEmpty) throw StateError('No new session was returned');
+      await _result('session.title', {'session_id': runtime, 'title': canonicalChatTitle});
+      return BotChatOpenResult(
+        runtimeSessionId: runtime,
+        storedSessionId: (created['stored_session_id'] ?? runtime).toString(),
+        messages: const [],
+        created: true,
+      );
+    } catch (_) {
+      await _result('session.title', {'session_id': previousRuntime, 'title': canonicalChatTitle});
+      await _result('session.set_hidden', {'session_id': previousRuntime, 'hidden': true});
+      rethrow;
+    }
+  }
+
   Future<void> submitPrompt({
     required String runtimeSessionId,
     required String text,
@@ -190,6 +246,7 @@ class BotModeGateway {
   }
 
   void close() {
+    _closed = true;
     _ws?.close();
     _ws = null;
     _dashboard?.close();

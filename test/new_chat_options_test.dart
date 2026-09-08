@@ -89,7 +89,7 @@ void main() {
     });
 
     test('disables Project chat on a gateway without Projects, with a reason '
-        'naming the gateway rather than the user', () {
+        'pointing to desktop connection settings', () {
       final options = buildNewChatOptions(
         support: ProjectsSupport.unsupported,
         projects: const [],
@@ -97,7 +97,8 @@ void main() {
 
       final projectChat = _option(options, NewChatMode.projectChat);
       expect(projectChat.enabled, isFalse);
-      expect(projectChat.disabledReason, contains('gateway'));
+      expect(projectChat.disabledReason, contains('Dashboard / Proxy Settings'));
+      expect(projectChat.disabledReason, isNot(contains('Update the gateway')));
     });
 
     test('a supported gateway with no project yet asks for one instead of '

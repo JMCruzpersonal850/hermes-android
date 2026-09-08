@@ -40,6 +40,7 @@ import '../widgets/new_chat_sheet.dart';
 import '../widgets/project_detail_screen.dart';
 import '../widgets/projects_pane.dart';
 import 'chat_screen.dart';
+import 'bots_home_pane.dart';
 import 'files_screen.dart';
 import 'cron_screen.dart';
 import 'memory_screen.dart';
@@ -117,6 +118,7 @@ Widget buildWorkspaceChatScreen({
 
 class WorkspaceScreen extends StatefulWidget {
   final SavedConnection connection;
+  final HermesDestination initialDestination;
 
   /// Overrides repository construction. When provided, the caller keeps
   /// ownership of the repository lifecycle and this screen will not close it.
@@ -175,6 +177,7 @@ class WorkspaceScreen extends StatefulWidget {
 
   const WorkspaceScreen({
     required this.connection,
+    this.initialDestination = HermesDestination.bots,
     this.repositoryFactory,
     this.onOpenProject,
     this.onOpenSession,
@@ -224,7 +227,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   /// The destination currently on screen. The New button is a Home
   /// affordance: over Projects or More it would be ambiguous what it creates.
-  HermesDestination _destination = HermesDestination.home;
+  late HermesDestination _destination = widget.initialDestination;
 
   /// The last known attention/running signals. Home ranks with these; an
   /// empty value simply means everything falls back to `Continue working`.
@@ -627,8 +630,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
     // Projects live on the Desktop Gateway JSON-RPC transport; a legacy REST
     // connection simply has nowhere to ask.
-    final gatewayUrl = widget.connection.desktopGatewayUrl?.trim() ?? '';
-    if (gatewayUrl.isEmpty) {
+    if (!widget.connection.hasDesktopGateway) {
       if (mounted) setState(() => _initialized = true);
       return;
     }
@@ -659,6 +661,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Widget _pane(BuildContext context, HermesDestination destination) {
     switch (destination) {
+      case HermesDestination.bots:
+        return BotsHomePane(connection: widget.connection);
       case HermesDestination.chats:
         return WorkspaceSessionsScreen(
           title: 'Chats',
@@ -681,9 +685,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
           return const ErrorState.unsupported(
             title: 'Projects unavailable',
             message:
-                'Projects need a Desktop Gateway connection. Add the Desktop '
-                'Gateway URL to this connection to organize chats across '
-                'your devices.',
+                'Connect the desktop service in Dashboard / Proxy Settings '
+                'on your saved connection to organize chats across devices.',
           );
         }
         return ProjectsPane(
@@ -1217,9 +1220,14 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     return Scaffold(
       backgroundColor: tokens.surface,
       appBar: AppBar(
-        title: Text(widget.connection.label),
+        title: Text(_destination == HermesDestination.bots ? 'Bots' : widget.connection.label),
         centerTitle: false,
         actions: [
+          IconButton(
+            tooltip: 'Bots & Skills',
+            icon: const Icon(Icons.smart_toy_outlined),
+            onPressed: () => _push(SkillsScreen(connection: widget.connection)),
+          ),
           if (_destination == HermesDestination.home) ...[
             IconButton(
               tooltip: _inboxActionCount == 0
@@ -1242,7 +1250,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         ],
       ),
       body: HermesShell(
-        initialDestination: HermesDestination.home,
+        initialDestination: widget.initialDestination,
         // The badge is the only attention signal visible from another
         // destination, so blocked work has to raise it even while the user is
         // in Projects or More.

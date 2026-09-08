@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/hermes_profile.dart';
 import '../services/profiles_gateway_client.dart';
@@ -15,10 +16,12 @@ typedef BotSelected = Future<void> Function(HermesProfile profile);
 class BotsPane extends StatefulWidget {
   final ProfilesGatewayClient profiles;
   final BotSelected onOpenBot;
+  final String pinStorageKey;
 
   const BotsPane({
     required this.profiles,
     required this.onOpenBot,
+    this.pinStorageKey = 'bot-pins',
     super.key,
   });
 
@@ -29,9 +32,33 @@ class BotsPane extends StatefulWidget {
 class _BotsPaneState extends State<BotsPane> {
   late Future<ProfilesSnapshot> _snapshot = widget.profiles.list();
   bool _opening = false;
+  String _query = '';
+  Set<String> _pins = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPins();
+  }
+
+  Future<void> _loadPins() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _pins = (prefs.getStringList(widget.pinStorageKey) ?? []).toSet());
+  }
+
+  Future<void> _togglePin(String name) async {
+    final updated = {..._pins};
+    if (!updated.add(name)) updated.remove(name);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(widget.pinStorageKey, updated.toList());
+    if (mounted) setState(() => _pins = updated);
+  }
+
 
   void _refresh() {
-    setState(() => _snapshot = widget.profiles.list());
+    final next = widget.profiles.list();
+    setState(() { _snapshot = next; });
   }
 
   Future<void> _createBot() async {
@@ -98,14 +125,15 @@ class _BotsPaneState extends State<BotsPane> {
             title: unsupported ? 'Update Hermes to use Bot Mode' : 'Could not load your bots',
             message: unsupported
                 ? 'The PC gateway does not expose profiles.list yet. Update Hermes on the PC, then refresh.'
-                : '$error',
+                : 'Check Dashboard / Proxy Settings on your saved connection and '
+                    'make sure the desktop service is running. $error',
             buttonLabel: 'Try again',
             onPressed: _refresh,
           );
         }
 
         final data = snapshot.data!;
-        final profiles = data.profiles;
+        final profiles = data.profiles.where((p) => p.title.toLowerCase().contains(_query.toLowerCase())).toList();
         return RefreshIndicator(
           onRefresh: () async {
             _refresh();
@@ -114,6 +142,13 @@ class _BotsPaneState extends State<BotsPane> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: TextField(
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search bots', border: OutlineInputBorder()),
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+              )),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
@@ -129,14 +164,14 @@ class _BotsPaneState extends State<BotsPane> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Bots',
+                              'Conversations',
                               style: TextStyle(
-                                fontSize: 28,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
                             SizedBox(height: 4),
-                            Text('Your Hermes agents, synced with your PC.'),
+                            Text('Hold a conversation to pin it.'),
                           ],
                         ),
                       ),
@@ -149,6 +184,30 @@ class _BotsPaneState extends State<BotsPane> {
                   ),
                 ),
               ),
+              if (_pins.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 112,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        for (final profile in profiles.where((p) => _pins.contains(p.name)))
+                          SizedBox(
+                            width: 100,
+                            child: InkWell(
+                              onTap: _opening ? null : () => _open(profile),
+                              onLongPress: () => _togglePin(profile.name),
+                              child: Column(children: [
+                                CircleAvatar(child: Text(_BotCard._initials(profile.title))),
+                                const SizedBox(height: 8),
+                                Text(profile.title, maxLines: 2, textAlign: TextAlign.center),
+                              ]),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               if (!data.botModeProtocol)
                 const SliverToBoxAdapter(
                   child: Padding(
@@ -182,10 +241,12 @@ class _BotsPaneState extends State<BotsPane> {
                   ),
                   sliver: SliverList.separated(
                     itemCount: profiles.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: HermesSpacing.md),
+                    separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) => _BotCard(
                       profile: profiles[index],
                       enabled: !_opening,
+                      pinned: _pins.contains(profiles[index].name),
+                      onPin: () => _togglePin(profiles[index].name),
                       onTap: () => _open(profiles[index]),
                     ),
                   ),
@@ -201,159 +262,36 @@ class _BotsPaneState extends State<BotsPane> {
 class _BotCard extends StatelessWidget {
   final HermesProfile profile;
   final VoidCallback onTap;
+  final VoidCallback onPin;
   final bool enabled;
-
-  const _BotCard({
-    required this.profile,
-    required this.onTap,
-    required this.enabled,
-  });
+  final bool pinned;
+  const _BotCard({required this.profile, required this.onTap, required this.enabled, required this.onPin, required this.pinned});
 
   @override
   Widget build(BuildContext context) {
-    final tokens = HermesTokens.of(context);
     final session = profile.conversation;
-    final working = _isWorking(profile.workerSession);
-    final modelLine = [
-      if (profile.provider.trim().isNotEmpty) profile.provider.trim(),
-      if (profile.model.trim().isNotEmpty) profile.model.trim(),
-    ].join(' • ');
-
-    return HermesCard(
+    final palette = [Colors.deepPurple, Colors.blue, Colors.teal, Colors.orange, Colors.pink];
+    final color = palette[profile.name.codeUnits.fold<int>(0, (sum, n) => sum + n) % palette.length];
+    final lastActive = session?.lastActive ?? 0;
+    final age = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch((lastActive * 1000).round()));
+    final time = lastActive <= 0 ? '' : age.inDays > 0 ? '${age.inDays}d' : age.inHours > 0 ? '${age.inHours}h' : 'Now';
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       onTap: enabled ? onTap : null,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              color: tokens.accent.withValues(alpha: 0.14),
-            ),
-            child: Text(
-              _initials(profile.title),
-              style: TextStyle(
-                color: tokens.accent,
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-              ),
-            ),
-          ),
-          const SizedBox(width: HermesSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        profile.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    if (working)
-                      const _StatusPill(label: 'Working', icon: Icons.bolt_rounded)
-                    else if (profile.isDefault)
-                      const _StatusPill(label: 'Default', icon: Icons.star_rounded),
-                  ],
-                ),
-                if (profile.description.trim().isNotEmpty) ...[
-                  const SizedBox(height: 3),
-                  Text(
-                    profile.description.trim(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: tokens.muted),
-                  ),
-                ],
-                if (session?.preview.trim().isNotEmpty == true) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    session!.preview.trim(),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                if (modelLine.isNotEmpty || profile.skillCount > 0) ...[
-                  const SizedBox(height: 9),
-                  Text(
-                    [
-                      if (modelLine.isNotEmpty) modelLine,
-                      if (profile.skillCount > 0)
-                        '${profile.skillCount} skill${profile.skillCount == 1 ? '' : 's'}',
-                    ].join('  •  '),
-                    style: TextStyle(
-                      color: tokens.muted,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Padding(
-            padding: EdgeInsets.only(top: 15),
-            child: Icon(Icons.chevron_right_rounded),
-          ),
-        ],
-      ),
+      onLongPress: onPin,
+      leading: CircleAvatar(radius: 25, backgroundColor: color, foregroundColor: Colors.white, child: Text(_initials(profile.title))),
+      title: Text(profile.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(session?.preview.trim().isNotEmpty == true ? session!.preview : 'No messages yet', maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Column(mainAxisSize: MainAxisSize.min, children: [
+        Text(time, style: Theme.of(context).textTheme.labelSmall),
+        if (pinned) const Icon(Icons.push_pin, size: 14),
+      ]),
     );
   }
-
-  static bool _isWorking(HermesProfileWorkerSession? worker) {
-    if (worker == null || worker.lastActive <= 0) return false;
-    final now = DateTime.now().millisecondsSinceEpoch / 1000;
-    return now - worker.lastActive < 120;
-  }
-
   static String _initials(String value) {
     final words = value.trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();
     if (words.isEmpty) return 'H';
-    if (words.length == 1) return words.first.substring(0, 1).toUpperCase();
-    return '${words.first.substring(0, 1)}${words.last.substring(0, 1)}'.toUpperCase();
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  final String label;
-  final IconData icon;
-
-  const _StatusPill({required this.label, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = HermesTokens.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: tokens.accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: tokens.accent),
-          const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: tokens.accent,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
+    return words.first.substring(0, 1).toUpperCase();
   }
 }
 

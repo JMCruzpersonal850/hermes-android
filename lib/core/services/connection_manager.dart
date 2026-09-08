@@ -649,18 +649,33 @@ class ApiClient {
   // ── Session listing ──────────────────────────────────────────────────
 
   Future<List<Session>> getSessions({Duration timeout = requestTimeout}) async {
-    final res = await _http
-        .get(Uri.parse('$baseUrl/api/sessions'), headers: _headers)
-        .timeout(timeout);
-    if (res.statusCode != 200) {
-      throw Exception('HTTP ${res.statusCode}: ${res.body}');
+    final sessions = <String, Session>{};
+    var offset = 0;
+    while (true) {
+      final uri = Uri.parse('$baseUrl/api/sessions').replace(
+        queryParameters: {'limit': '200', 'offset': '$offset'},
+      );
+      final res = await _http.get(uri, headers: _headers).timeout(timeout);
+      if (res.statusCode != 200) {
+        throw Exception('Could not load chats: HTTP ${res.statusCode}');
+      }
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final rows = (data['data'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      final previousCount = sessions.length;
+      for (final row in rows) {
+        final session = Session.fromJson(row);
+        sessions[session.id] = session;
+      }
+      if (data['has_more'] != true) break;
+      if (rows.isEmpty || sessions.length == previousCount) {
+        throw Exception('Gateway chat pagination did not advance. Try refreshing.');
+      }
+      final pageSize = data['limit'];
+      offset += pageSize is int && pageSize > 0 ? pageSize : rows.length;
     }
-    final data = jsonDecode(res.body) as Map<String, dynamic>;
-    final list = data['data'] as List? ?? [];
-    return list
-        .whereType<Map<String, dynamic>>()
-        .map((s) => Session.fromJson(s))
-        .toList();
+    return sessions.values.toList();
   }
 
   // ── Messages ─────────────────────────────────────────────────────────
@@ -1068,6 +1083,7 @@ class DashboardClient {
   final http.Client _http;
   final String _baseUrl;
   final bool _proxied;
+  final Duration requestTimeout;
   final String? _username;
   final String? _password;
   String? _token;
@@ -1092,6 +1108,7 @@ class DashboardClient {
     String? username,
     String? password,
     http.Client? httpClient,
+    this.requestTimeout = const Duration(seconds: 15),
   }) : _proxied = proxied,
        _username = username,
        _password = password,
@@ -1128,7 +1145,7 @@ class DashboardClient {
           'username': _username,
           'password': _password,
         }),
-      );
+      ).timeout(requestTimeout);
       if (res.statusCode == 401) {
         throw Exception('Dashboard login failed: invalid username or password');
       }
@@ -1165,7 +1182,7 @@ class DashboardClient {
 
   Future<String> _fetchToken() async {
     try {
-      final res = await _http.get(Uri.parse('$_baseUrl/'));
+      final res = await _http.get(Uri.parse('$_baseUrl/')).timeout(requestTimeout);
       if (res.statusCode != 200) throw Exception('Dashboard not reachable');
       final match = RegExp(
         r'window\.__HERMES_SESSION_TOKEN__="([^"]+)";',
@@ -1204,7 +1221,7 @@ class DashboardClient {
     final res = await _http.post(
       Uri.parse('$_baseUrl/api/auth/ws-ticket'),
       headers: await _authHeaders(),
-    );
+    ).timeout(requestTimeout);
     if (res.statusCode == 401 && !retried) {
       _resetAuth();
       return mintWebSocketTicket(retried: true);
@@ -1239,7 +1256,7 @@ class DashboardClient {
     final uri = Uri.parse(
       '$_baseUrl/api/$endpoint',
     ).replace(queryParameters: queryParameters);
-    final res = await _http.get(uri, headers: headers);
+    final res = await _http.get(uri, headers: headers).timeout(requestTimeout);
     if (res.statusCode == 401 && !retried) {
       _resetAuth();
       return apiGet(endpoint, queryParameters: queryParameters, retried: true);
@@ -1257,7 +1274,7 @@ class DashboardClient {
     final uri = Uri.parse(
       '$_baseUrl/api/$endpoint',
     ).replace(queryParameters: queryParameters);
-    final res = await _http.get(uri, headers: headers);
+    final res = await _http.get(uri, headers: headers).timeout(requestTimeout);
     if (res.statusCode == 401 && !retried) {
       _resetAuth();
       return apiGetBytes(
@@ -1278,7 +1295,7 @@ class DashboardClient {
     final res = await _http.get(
       Uri.parse('$_baseUrl/api/$endpoint'),
       headers: headers,
-    );
+    ).timeout(requestTimeout);
     if (res.statusCode == 401 && !retried) {
       _resetAuth();
       return apiGetList(endpoint, retried: true);
@@ -1302,7 +1319,7 @@ class DashboardClient {
       Uri.parse('$_baseUrl/api/$endpoint'),
       headers: headers,
       body: body != null ? jsonEncode(body) : null,
-    );
+    ).timeout(requestTimeout);
     if (res.statusCode == 401 && !retried) {
       _resetAuth();
       return apiPost(endpoint, body: body, retried: true);
@@ -1318,7 +1335,7 @@ class DashboardClient {
     final res = await _http.delete(
       Uri.parse('$_baseUrl/api/$endpoint'),
       headers: headers,
-    );
+    ).timeout(requestTimeout);
     if (res.statusCode == 401 && !retried) {
       _resetAuth();
       return apiDelete(endpoint, retried: true);
@@ -1338,7 +1355,7 @@ class DashboardClient {
       Uri.parse('$_baseUrl/api/$endpoint'),
       headers: headers,
       body: body != null ? jsonEncode(body) : null,
-    );
+    ).timeout(requestTimeout);
     if (res.statusCode == 401 && !retried) {
       _resetAuth();
       return apiPut(endpoint, body: body, retried: true);
@@ -1396,7 +1413,7 @@ class DashboardClient {
       Uri.parse('$_baseUrl/api/cron/jobs/$jobId'),
       headers: headers,
       body: jsonEncode(buildCronUpdateBody(updates)),
-    );
+    ).timeout(requestTimeout);
     if (res.statusCode == 401 && !retried) {
       _resetAuth();
       return updateJob(jobId, updates, retried: true);

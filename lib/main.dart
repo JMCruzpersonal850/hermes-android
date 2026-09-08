@@ -572,8 +572,8 @@ class HomeScreenState extends State<HomeScreen> {
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Text(
-                    'Used for hosted path prefixes and for the Settings, '
-                    'Memory, Skills and Cron tabs. Leave username/password '
+                    'Connect Desktop projects, Bots, Skills, Memory and Cron. '
+                    'Leave username/password '
                     'blank for an open dashboard, or enable proxied mode when '
                     'your reverse proxy injects dashboard auth.',
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
@@ -651,6 +651,23 @@ class HomeScreenState extends State<HomeScreen> {
                   ),
                   keyboardType: TextInputType.number,
                   enabled: !validating,
+                ),
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  onPressed: validating || conn.apiKey.isEmpty
+                      ? null
+                      : () => setDialogState(() {
+                          userCtrl.text = 'hermes';
+                          passCtrl.text = conn.apiKey;
+                          proxied = false;
+                        }),
+                  icon: const Icon(Icons.key_outlined),
+                  label: const Text('Use saved Gateway key'),
+                ),
+                const Text(
+                  'Use this only when your desktop service was set up with '
+                  'username hermes and the same Gateway key.',
+                  style: TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 TextField(
