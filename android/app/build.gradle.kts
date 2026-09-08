@@ -38,6 +38,15 @@ android {
    }
 
    signingConfigs {
+       getByName("debug") {
+           val stableDebugKey = System.getenv("HERMES_DEBUG_KEYSTORE_PATH")
+           if (!stableDebugKey.isNullOrBlank()) {
+               storeFile = file(stableDebugKey)
+               storePassword = "android"
+               keyAlias = "androiddebugkey"
+               keyPassword = "android"
+           }
+       }
        create("release") {
            if (keystoreProperties.containsKey("storeFile")) {
                storeFile = file(keystoreProperties["storeFile"] as String)

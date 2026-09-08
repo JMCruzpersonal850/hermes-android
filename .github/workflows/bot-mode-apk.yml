@@ -48,6 +48,7 @@ jobs:
           mkdir -p ~/.android
           printf '%s' "$HERMES_DEBUG_KEYSTORE" | base64 --decode > ~/.android/debug.keystore
           chmod 600 ~/.android/debug.keystore
+          echo "HERMES_DEBUG_KEYSTORE_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
 
       - name: Build arm64 Android APK
         run: flutter build apk --debug --split-per-abi
