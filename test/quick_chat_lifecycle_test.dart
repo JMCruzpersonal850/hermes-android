@@ -1,4 +1,3 @@
-import 'package:hermes_android/core/widgets/hermes_shell.dart';
 /// The Quick chat lifecycle, end to end.
 ///
 /// `buildNewChatDraft` computed a 72 h deadline and `QuickChatStore` can now
@@ -13,6 +12,8 @@ import 'package:hermes_android/core/widgets/hermes_shell.dart';
 /// 2. **Wiring** — starting a Quick chat from Home's New button actually
 ///    records it, and starting a Project chat records nothing.
 library;
+
+import 'package:hermes_android/core/widgets/hermes_shell.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

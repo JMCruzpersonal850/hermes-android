@@ -32,6 +32,7 @@ class BotsPane extends StatefulWidget {
 class _BotsPaneState extends State<BotsPane> {
   late Future<ProfilesSnapshot> _snapshot = widget.profiles.list();
   bool _opening = false;
+  String _query = '';
   Set<String> _pins = {};
 
   @override
@@ -131,7 +132,7 @@ class _BotsPaneState extends State<BotsPane> {
         }
 
         final data = snapshot.data!;
-        final profiles = data.profiles;
+        final profiles = data.profiles.where((p) => p.title.toLowerCase().contains(_query.toLowerCase())).toList();
         return RefreshIndicator(
           onRefresh: () async {
             _refresh();
@@ -140,6 +141,13 @@ class _BotsPaneState extends State<BotsPane> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
+              SliverToBoxAdapter(child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: TextField(
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search bots', border: OutlineInputBorder()),
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+              )),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
@@ -155,9 +163,9 @@ class _BotsPaneState extends State<BotsPane> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Bots',
+                              'Conversations',
                               style: TextStyle(
-                                fontSize: 28,
+                                fontSize: 20,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
