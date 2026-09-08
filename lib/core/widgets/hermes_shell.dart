@@ -12,6 +12,7 @@ import '../theme/hermes_theme.dart';
 
 /// A top-level destination of the Hermes app.
 enum HermesDestination {
+  bots,
   /// Attention-first dashboard: what needs you, what is running.
   home,
 
@@ -29,6 +30,8 @@ enum HermesDestination {
 
   String get label {
     switch (this) {
+      case HermesDestination.bots:
+        return 'Bots';
       case HermesDestination.home:
         return 'Home';
       case HermesDestination.chats:
@@ -44,6 +47,8 @@ enum HermesDestination {
 
   IconData get icon {
     switch (this) {
+      case HermesDestination.bots:
+        return Icons.smart_toy_outlined;
       case HermesDestination.home:
         return Icons.home_outlined;
       case HermesDestination.chats:
@@ -59,6 +64,8 @@ enum HermesDestination {
 
   IconData get selectedIcon {
     switch (this) {
+      case HermesDestination.bots:
+        return Icons.smart_toy_rounded;
       case HermesDestination.home:
         return Icons.home_rounded;
       case HermesDestination.chats:

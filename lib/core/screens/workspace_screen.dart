@@ -40,6 +40,7 @@ import '../widgets/new_chat_sheet.dart';
 import '../widgets/project_detail_screen.dart';
 import '../widgets/projects_pane.dart';
 import 'chat_screen.dart';
+import 'bots_home_pane.dart';
 import 'files_screen.dart';
 import 'cron_screen.dart';
 import 'memory_screen.dart';
@@ -224,7 +225,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   /// The destination currently on screen. The New button is a Home
   /// affordance: over Projects or More it would be ambiguous what it creates.
-  HermesDestination _destination = HermesDestination.home;
+  HermesDestination _destination = HermesDestination.bots;
 
   /// The last known attention/running signals. Home ranks with these; an
   /// empty value simply means everything falls back to `Continue working`.
@@ -658,6 +659,8 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
 
   Widget _pane(BuildContext context, HermesDestination destination) {
     switch (destination) {
+      case HermesDestination.bots:
+        return BotsHomePane(connection: widget.connection);
       case HermesDestination.chats:
         return WorkspaceSessionsScreen(
           title: 'Chats',
@@ -1215,7 +1218,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
     return Scaffold(
       backgroundColor: tokens.surface,
       appBar: AppBar(
-        title: Text(widget.connection.label),
+        title: Text(_destination == HermesDestination.bots ? 'Bots' : widget.connection.label),
         centerTitle: false,
         actions: [
           IconButton(
@@ -1245,7 +1248,7 @@ class _WorkspaceScreenState extends State<WorkspaceScreen> {
         ],
       ),
       body: HermesShell(
-        initialDestination: HermesDestination.home,
+        initialDestination: HermesDestination.bots,
         // The badge is the only attention signal visible from another
         // destination, so blocked work has to raise it even while the user is
         // in Projects or More.

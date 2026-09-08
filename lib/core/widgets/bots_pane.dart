@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/hermes_profile.dart';
 import '../services/profiles_gateway_client.dart';
@@ -15,10 +16,12 @@ typedef BotSelected = Future<void> Function(HermesProfile profile);
 class BotsPane extends StatefulWidget {
   final ProfilesGatewayClient profiles;
   final BotSelected onOpenBot;
+  final String pinStorageKey;
 
   const BotsPane({
     required this.profiles,
     required this.onOpenBot,
+    this.pinStorageKey = 'bot-pins',
     super.key,
   });
 
@@ -29,6 +32,28 @@ class BotsPane extends StatefulWidget {
 class _BotsPaneState extends State<BotsPane> {
   late Future<ProfilesSnapshot> _snapshot = widget.profiles.list();
   bool _opening = false;
+  Set<String> _pins = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPins();
+  }
+
+  Future<void> _loadPins() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() => _pins = (prefs.getStringList(widget.pinStorageKey) ?? []).toSet());
+  }
+
+  Future<void> _togglePin(String name) async {
+    final updated = {..._pins};
+    if (!updated.add(name)) updated.remove(name);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(widget.pinStorageKey, updated.toList());
+    if (mounted) setState(() => _pins = updated);
+  }
+
 
   void _refresh() {
     setState(() => _snapshot = widget.profiles.list());
@@ -150,6 +175,30 @@ class _BotsPaneState extends State<BotsPane> {
                   ),
                 ),
               ),
+              if (_pins.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 112,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        for (final profile in profiles.where((p) => _pins.contains(p.name)))
+                          SizedBox(
+                            width: 100,
+                            child: InkWell(
+                              onTap: _opening ? null : () => _open(profile),
+                              onLongPress: () => _togglePin(profile.name),
+                              child: Column(children: [
+                                CircleAvatar(child: Text(_initials(profile.title))),
+                                const SizedBox(height: 8),
+                                Text(profile.title, maxLines: 2, textAlign: TextAlign.center),
+                              ]),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
               if (!data.botModeProtocol)
                 const SliverToBoxAdapter(
                   child: Padding(
@@ -184,10 +233,20 @@ class _BotsPaneState extends State<BotsPane> {
                   sliver: SliverList.separated(
                     itemCount: profiles.length,
                     separatorBuilder: (_, __) => const SizedBox(height: HermesSpacing.md),
-                    itemBuilder: (context, index) => _BotCard(
+                    itemBuilder: (context, index) => Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          tooltip: _pins.contains(profiles[index].name) ? 'Unpin bot' : 'Pin bot',
+                          icon: Icon(_pins.contains(profiles[index].name) ? Icons.push_pin : Icons.push_pin_outlined),
+                          onPressed: () => _togglePin(profiles[index].name),
+                        ),
+                        _BotCard(
                       profile: profiles[index],
                       enabled: !_opening,
                       onTap: () => _open(profiles[index]),
+                        ),
+                      ],
                     ),
                   ),
                 ),

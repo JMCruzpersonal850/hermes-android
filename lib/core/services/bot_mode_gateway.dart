@@ -155,6 +155,37 @@ class BotModeGateway {
     );
   }
 
+  Future<Map<String, dynamic>> groupRequest(String method, Map<String, dynamic> params) =>
+      _result(method, params);
+
+  Future<BotChatOpenResult> startFreshChat(HermesProfile profile, String previousRuntime) async {
+    await _result('session.title', {
+      'session_id': previousRuntime,
+      'title': 'Bot Chat • ${DateTime.now().toIso8601String()}',
+    });
+    try {
+      final created = await _result('session.create', {
+        'profile': profile.name,
+        'title': canonicalChatTitle,
+        'hidden': true,
+        'follow_profile_config': true,
+        'source': 'hermes_mobile_bot',
+      });
+      final runtime = (created['session_id'] ?? '').toString();
+      if (runtime.isEmpty) throw StateError('No new session was returned');
+      await _result('session.title', {'session_id': runtime, 'title': canonicalChatTitle});
+      return BotChatOpenResult(
+        runtimeSessionId: runtime,
+        storedSessionId: (created['stored_session_id'] ?? runtime).toString(),
+        messages: const [],
+        created: true,
+      );
+    } catch (_) {
+      await _result('session.title', {'session_id': previousRuntime, 'title': canonicalChatTitle});
+      rethrow;
+    }
+  }
+
   Future<void> submitPrompt({
     required String runtimeSessionId,
     required String text,
